@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """
-Convert DeepSeek-Prover-V1.5 JSONL files to local SFT format.
+Convert DeepSeek-Prover-V1.5 JSONL files (with proofs) to local SFT format.
 
-Input schema per DeepSeek-Prover-V1.5:
-- name, split, informal_prefix, formal_statement, formal_proof, header (unused)
+Expected input schema (per DeepSeek-Prover-V1.5 full release):
+- split, header, formal_statement, goal, formal_proof (others ignored)
 
 Output schema:
-- prompt: informal_prefix + formal_statement + instruction
+- prompt: header + formal_statement + goal + instruction
 - completion: Lean proof script (prefixed with a newline)
 """
 
@@ -16,14 +16,16 @@ from pathlib import Path
 from typing import Iterable, Tuple
 
 
-def build_prompt(informal_prefix: str, formal_statement: str) -> str:
+def build_prompt(header: str, formal_statement: str, goal: str) -> str:
     parts = []
-    if informal_prefix:
-        parts.append(informal_prefix.strip())
+    if header:
+        parts.append(header.strip())
     if formal_statement:
         parts.append(formal_statement.strip())
+    if goal:
+        parts.append(goal.strip())
     parts.append("-- Provide a Lean 4 proof script that discharges the goal above.")
-    return "\n".join(parts)
+    return "\n\n".join(parts)
 
 
 def convert_one_file(path: Path, use_valid_for_train: bool = False) -> Tuple[list, list]:
@@ -31,8 +33,16 @@ def convert_one_file(path: Path, use_valid_for_train: bool = False) -> Tuple[lis
     for line in path.read_text().splitlines():
         row = json.loads(line)
         split = (row.get("split") or "train").lower()
-        prompt = build_prompt(row.get("informal_prefix", ""), row.get("formal_statement", ""))
-        completion = "\n" + (row.get("formal_proof") or "").strip()
+        proof = (row.get("formal_proof") or "").strip()
+        if not proof:
+            # Skip entries without ground-truth proofs.
+            continue
+        prompt = build_prompt(
+            row.get("header", ""),
+            row.get("formal_statement", ""),
+            row.get("goal", ""),
+        )
+        completion = "\n" + proof
         out = {"prompt": prompt, "completion": completion}
         if split.startswith("train"):
             train_rows.append(out)

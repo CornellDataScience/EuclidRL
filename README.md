@@ -33,7 +33,7 @@ python scripts/convert_deepseek_v15.py \
   --train-output data/sft/train.jsonl \
   --val-output data/sft/val.jsonl
 ```
-This pulls all `split=train` into train and `split=valid` into val; `split=test` is dropped.
+This expects the full DeepSeek JSONLs with `header`, `formal_statement`, `goal`, and `formal_proof` columns (proofs are required). It pulls all `split=train` into train and `split=valid` into val; `split=test` is dropped. The lightweight copies under `data/deepseek/` do **not** include `formal_proof` and are for reference only.
 
 ## Running SFT
 ```bash
