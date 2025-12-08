@@ -1,0 +1,47 @@
+# GRPO Configuration for DeepSeek-Prover-V1.5 style training
+# Based on paper Section 2.3: "Reinforcement Learning from Proof Assistant Feedback"
+
+# Model configuration
+model_name: Qwen/Qwen2.5-Math-1.5B
+sft_checkpoint: checkpoints/sft/final
+output_dir: checkpoints/grpo
+
+# Data configuration
+rollout_file: data/rollouts/train.jsonl
+max_prompt_length: 512
+max_response_length: 2048  # Paper uses max length 2048
+
+# Training hyperparameters (from paper)
+learning_rate: 5.0e-6  # Paper: "constant learning rate of 5e-6"
+batch_size: 512        # Paper: "training batch size is configured to 512"
+gradient_accumulation_steps: 16
+
+# GRPO-specific settings (from paper)
+group_size: 32         # Paper: "sample a group of 32 candidate proofs"
+kl_penalty: 0.02       # Paper: "KL penalty coefficient is set to 0.02"
+
+# Reward settings
+# Paper: "receives a reward of 1 if verified as correct, and 0 otherwise"
+reward_correct: 1.0
+reward_incorrect: 0.0
+
+# Logging and checkpointing
+log_steps: 5
+save_steps: 200
+eval_steps: 200
+
+# Training settings
+num_epochs: 1
+mixed_precision: bf16
+seed: 42
+
+# LoRA (optional, not mentioned in paper)
+use_lora: false
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+
+# Prompt settings (from paper Section 2.3)
+# "Each theorem is prefixed with both CoT and non-CoT guiding prompts"
+use_cot_prompts: true
+use_non_cot_prompts: true
