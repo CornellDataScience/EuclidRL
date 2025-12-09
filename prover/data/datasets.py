@@ -18,15 +18,16 @@ class SFTExample:
 
 class JsonlSFTDataset(Dataset):
     def __init__(self, path: str | Path) -> None:
-        self.samples: List[SFTExample] = []
+        self.samples: List[dict] = []
         for line in Path(path).read_text().splitlines():
             row = json.loads(line)
-            self.samples.append(SFTExample(prompt=row["prompt"], completion=row["completion"]))
+            # Store as dict for compatibility with SFTTrainer
+            self.samples.append({"prompt": row["prompt"], "completion": row["completion"]})
 
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> SFTExample:
+    def __getitem__(self, idx: int) -> dict:
         return self.samples[idx]
 
 
@@ -41,12 +42,12 @@ class SupervisedDataCollator:
         self.tokenizer = tokenizer
         self.max_length = max_length
 
-    def __call__(self, batch: Iterable[SFTExample]) -> dict:
+    def __call__(self, batch: Iterable[dict]) -> dict:
         prompts = []
         targets = []
         for sample in batch:
-            prompts.append(sample.prompt)
-            targets.append(sample.prompt + sample.completion)
+            prompts.append(sample["prompt"])
+            targets.append(sample["prompt"] + sample["completion"])
         encodings = self.tokenizer(
             targets,
             truncation=True,

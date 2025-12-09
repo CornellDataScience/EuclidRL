@@ -8,7 +8,7 @@ from transformers import TrainerCallback
 from trl import SFTConfig as TRLSFTConfig, SFTTrainer
 
 from prover.configs import SFTConfig
-from prover.data import SupervisedDataCollator, load_jsonl_dataset
+from prover.data import load_jsonl_dataset
 from prover.models import get_tokenizer, load_qwen_policy
 from prover.models.qwen_policy import PolicyInitConfig
 
@@ -32,9 +32,8 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
     model, tokenizer = load_qwen_policy(policy_cfg)
 
     train_ds, val_ds = load_jsonl_dataset(cfg.train_file, cfg.val_file)
-    collator = SupervisedDataCollator(tokenizer, max_length=cfg.max_seq_length)
 
-    # Use TRL's SFTConfig instead of TrainingArguments for latest API
+    # Use TRL's SFTConfig - it handles prompt+completion datasets automatically
     args = TRLSFTConfig(
         output_dir=cfg.output_dir,
         num_train_epochs=cfg.num_train_epochs,
@@ -54,19 +53,20 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         gradient_checkpointing=cfg.gradient_checkpointing,
         report_to="none",
         seed=cfg.seed,
-        # SFT-specific parameters - NOTE: it's max_length not max_seq_length in TRL
+        # SFT-specific parameters
         max_length=cfg.max_seq_length,
         packing=False,
-        dataset_text_field=None,
+        # completion_only_loss=True means train only on completion tokens, not prompt
+        completion_only_loss=True,
     )
 
+    # SFTTrainer handles prompt+completion datasets automatically - no custom collator needed
     trainer = SFTTrainer(
         model=model,
         processing_class=tokenizer,
         args=args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        data_collator=collator,
     )
     trainer.add_callback(LogCallback())
     trainer.save_model(cfg.output_dir + "/init")
