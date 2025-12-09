@@ -45,8 +45,8 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         weight_decay=cfg.weight_decay,
         logging_steps=cfg.log_steps,
         save_steps=cfg.save_steps,
-        eval_steps=cfg.eval_steps,
-        eval_strategy="steps",
+        eval_steps=cfg.eval_steps if val_ds is not None else None,
+        eval_strategy="steps" if val_ds is not None else "no",
         save_strategy="steps",
         bf16=cfg.mixed_precision == "bf16",
         fp16=cfg.mixed_precision == "fp16",
@@ -56,8 +56,9 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         # SFT-specific parameters
         max_length=cfg.max_seq_length,
         packing=False,
-        # completion_only_loss=True means train only on completion tokens, not prompt
-        completion_only_loss=True,
+        # Don't use completion_only_loss - it can filter out all validation examples
+        # if tokenization doesn't align perfectly
+        completion_only_loss=False,
     )
 
     # SFTTrainer handles prompt+completion datasets automatically - no custom collator needed
