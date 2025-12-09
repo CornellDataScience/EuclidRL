@@ -4,8 +4,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
-from transformers import TrainerCallback, TrainingArguments
-from trl import SFTTrainer
+from transformers import TrainerCallback
+from trl import SFTConfig as TRLSFTConfig, SFTTrainer
 
 from prover.configs import SFTConfig
 from prover.data import SupervisedDataCollator, load_jsonl_dataset
@@ -34,7 +34,8 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
     train_ds, val_ds = load_jsonl_dataset(cfg.train_file, cfg.val_file)
     collator = SupervisedDataCollator(tokenizer, max_length=cfg.max_seq_length)
 
-    args = TrainingArguments(
+    # Use TRL's SFTConfig instead of TrainingArguments for latest API
+    args = TRLSFTConfig(
         output_dir=cfg.output_dir,
         num_train_epochs=cfg.num_train_epochs,
         learning_rate=cfg.learning_rate,
@@ -46,24 +47,25 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         logging_steps=cfg.log_steps,
         save_steps=cfg.save_steps,
         eval_steps=cfg.eval_steps,
-        eval_strategy="steps",  # Updated from evaluation_strategy for newer transformers
+        eval_strategy="steps",
         save_strategy="steps",
         bf16=cfg.mixed_precision == "bf16",
         fp16=cfg.mixed_precision == "fp16",
         gradient_checkpointing=cfg.gradient_checkpointing,
-        report_to=["none"],
+        report_to="none",
         seed=cfg.seed,
+        # SFT-specific parameters (moved from SFTTrainer constructor in newer versions)
+        max_seq_length=cfg.max_seq_length,
+        packing=False,
+        dataset_text_field=None,
     )
 
     trainer = SFTTrainer(
         model=model,
-        processing_class=tokenizer,  # Updated from tokenizer for newer trl versions
+        processing_class=tokenizer,
         args=args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        max_seq_length=cfg.max_seq_length,
-        packing=False,
-        dataset_text_field=None,
         data_collator=collator,
     )
     trainer.add_callback(LogCallback())
