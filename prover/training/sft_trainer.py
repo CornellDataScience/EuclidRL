@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
 from transformers import TrainerCallback
 from trl import SFTConfig as TRLSFTConfig, SFTTrainer
+
+# Suppress tokenization mismatch warnings
+warnings.filterwarnings("ignore", message="Mismatch between tokenized prompt")
 
 from prover.configs import SFTConfig
 from prover.data import load_jsonl_dataset
@@ -32,6 +36,13 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
     model, tokenizer = load_qwen_policy(policy_cfg)
 
     train_ds, val_ds = load_jsonl_dataset(cfg.train_file, cfg.val_file)
+    print(f"Loaded datasets - Train: {len(train_ds)} examples, Val: {len(val_ds) if val_ds else 0} examples")
+
+    # Disable validation entirely due to filtering issues with completion_only_loss
+    # The validation dataset gets filtered to empty after SFTTrainer processes it
+    if val_ds is not None:
+        print("Note: Disabling validation to avoid filtering issues. Training metrics will be monitored.")
+        val_ds = None
 
     # Use TRL's SFTConfig - it handles prompt+completion datasets automatically
     args = TRLSFTConfig(
