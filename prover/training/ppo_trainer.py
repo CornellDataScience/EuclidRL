@@ -75,7 +75,7 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
 
     model = AutoModelForCausalLMWithValueHead.from_pretrained(
         cfg.sft_checkpoint or cfg.model_name,
-        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         device_map="auto",
         trust_remote_code=True,
     )

@@ -42,11 +42,11 @@ def load_qwen_policy(cfg: PolicyInitConfig) -> tuple[PreTrainedModel, PreTrained
     tokenizer = get_tokenizer(cfg.model_name)
 
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
-    torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
+    dtype = torch.bfloat16 if device == "cuda" else torch.float32
     model = AutoModelForCausalLM.from_pretrained(
         cfg.model_name,
         device_map=None,  # avoid meta/offload issues when saving
-        torch_dtype=torch_dtype,
+        dtype=dtype,  # Updated from torch_dtype for newer transformers
         load_in_4bit=cfg.load_in_4bit,
         trust_remote_code=True,
     ).to(device)
