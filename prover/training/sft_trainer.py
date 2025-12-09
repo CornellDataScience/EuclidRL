@@ -54,8 +54,8 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         gradient_checkpointing=cfg.gradient_checkpointing,
         report_to="none",
         seed=cfg.seed,
-        # SFT-specific parameters (moved from SFTTrainer constructor in newer versions)
-        max_seq_length=cfg.max_seq_length,
+        # SFT-specific parameters - NOTE: it's max_length not max_seq_length in TRL
+        max_length=cfg.max_seq_length,
         packing=False,
         dataset_text_field=None,
     )
