@@ -46,7 +46,7 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         logging_steps=cfg.log_steps,
         save_steps=cfg.save_steps,
         eval_steps=cfg.eval_steps,
-        evaluation_strategy="steps",
+        eval_strategy="steps",  # Updated from evaluation_strategy for newer transformers
         save_strategy="steps",
         bf16=cfg.mixed_precision == "bf16",
         fp16=cfg.mixed_precision == "fp16",
