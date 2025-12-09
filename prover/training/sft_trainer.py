@@ -57,7 +57,7 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,  # Updated from tokenizer for newer trl versions
         args=args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
