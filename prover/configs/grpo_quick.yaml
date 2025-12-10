@@ -11,16 +11,16 @@ max_samples: 50           # Only use 50 examples for quick test
 shuffle_data: true
 
 max_prompt_length: 512
-max_response_length: 2048
+max_response_length: 512  # Reduced from 2048 to save memory
 
-# Training hyperparameters - reduced for speed
+# Training hyperparameters - reduced for speed AND memory
 learning_rate: 5.0e-6
-batch_size: 4             # Small batch for quick iteration
-gradient_accumulation_steps: 2
-num_workers: 4
+batch_size: 1             # VERY small batch to avoid OOM
+gradient_accumulation_steps: 4  # Accumulate to effective batch of 4
+num_workers: 0            # Disable for quick mode (avoids multiprocessing overhead)
 
-# GRPO-specific settings - reduced for speed
-group_size: 8             # Smaller group for faster generation
+# GRPO-specific settings - reduced for speed AND memory
+group_size: 4             # Smaller group to reduce memory (was 8)
 kl_penalty: 0.02
 
 # Reward settings

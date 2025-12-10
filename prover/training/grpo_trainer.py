@@ -217,6 +217,10 @@ class GRPOTrainer:
             all_response_log_probs.append(response_log_probs)
             all_ref_log_probs.append(ref_log_probs)
 
+            # Clear cache to prevent memory fragmentation
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
         # Stack log probs: (batch_size, group_size)
         response_log_probs_tensor = torch.stack(all_response_log_probs, dim=1)
         ref_log_probs_tensor = torch.stack(all_ref_log_probs, dim=1)
