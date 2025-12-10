@@ -85,7 +85,24 @@ def evaluate_model(
     print(f"Loading model from: {model_path}")
 
     # Check if this is a local path or HuggingFace model ID
-    is_local = Path(model_path).exists()
+    # Local paths start with /, ./, ~/, or don't contain a slash (relative paths)
+    # HuggingFace IDs are in format "namespace/model-name"
+    is_local = (
+        model_path.startswith("/") or
+        model_path.startswith("./") or
+        model_path.startswith("~/") or
+        model_path.startswith("checkpoints/") or
+        ("/" not in model_path)  # No slash means relative path like "model_dir"
+    ) and "/" in model_path or model_path.startswith(".")
+
+    # Better heuristic: if it contains "/" but doesn't look like "org/repo", it's local
+    if "/" in model_path and not model_path.count("/") == 1:
+        is_local = True
+    elif "/" in model_path:
+        # Could be "org/repo" (HF) or "path/to/checkpoint" (local)
+        # If first part has dots or starts with checkpoint/models, it's local
+        first_part = model_path.split("/")[0]
+        is_local = "." in first_part or first_part in ["checkpoints", "models", "output"]
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
