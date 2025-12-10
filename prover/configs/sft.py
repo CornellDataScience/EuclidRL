@@ -14,6 +14,7 @@ class SFTConfig:
     max_seq_length: int = 2048
     max_train_samples: Optional[int] = None  # Limit training data (None = use all)
     max_val_samples: Optional[int] = None  # Limit validation data (None = use all)
+    disable_validation: bool = False  # Set to True to skip validation entirely
     learning_rate: float = 2e-5
     batch_size: int = 2
     gradient_accumulation_steps: int = 8

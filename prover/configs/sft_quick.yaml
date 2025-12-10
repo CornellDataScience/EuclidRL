@@ -9,6 +9,7 @@ val_file: data/sft/val.jsonl
 # Limit data for quick testing
 max_train_samples: 100    # Only use 100 training examples
 max_val_samples: 20       # Only use 20 validation examples
+disable_validation: true  # Skip validation for faster testing
 
 # Training settings
 max_seq_length: 2048

@@ -46,11 +46,14 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
     )
     print(f"Loaded datasets - Train: {len(train_ds)} examples, Val: {len(val_ds) if val_ds else 0} examples")
 
-    # Disable validation entirely due to filtering issues with completion_only_loss
-    # The validation dataset gets filtered to empty after SFTTrainer processes it
-    if val_ds is not None:
-        print("Note: Disabling validation to avoid filtering issues. Training metrics will be monitored.")
+    # Handle validation
+    disable_val = getattr(cfg, 'disable_validation', False)
+    if disable_val and val_ds is not None:
+        print("Validation disabled via config (disable_validation=True)")
         val_ds = None
+    elif val_ds is not None:
+        print("Validation enabled - will evaluate every eval_steps")
+        print("  (Using completion_only_loss=False to avoid filtering issues)")
 
     # Use TRL's SFTConfig - it handles prompt+completion datasets automatically
     args = TRLSFTConfig(
