@@ -38,6 +38,12 @@ class GRPOConfig:
     # Mixed precision and optimization
     mixed_precision: Optional[str] = "bf16"
 
+    # A100-specific optimizations
+    use_flash_attention_2: bool = False  # 2-3x speedup on A100
+    compile_model: bool = False  # PyTorch 2.0+ compile (20-30% speedup)
+    num_workers: int = 0  # DataLoader workers for parallel loading
+    dataloader_pin_memory: bool = True  # Faster CPU->GPU transfer
+
     # LoRA settings (optional fine-tuning)
     use_lora: bool = False
     lora_r: int = 16

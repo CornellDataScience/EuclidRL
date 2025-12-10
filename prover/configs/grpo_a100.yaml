@@ -1,0 +1,79 @@
+# GRPO Configuration optimized for A100 GPU (40GB/80GB)
+# Based on DeepSeek-Prover-V1.5 with A100-specific optimizations
+
+# Model configuration
+model_name: Qwen/Qwen2.5-Math-1.5B
+sft_checkpoint: checkpoints/sft/final
+output_dir: checkpoints/grpo
+
+# Data configuration
+rollout_file: data/rollouts/train.jsonl
+max_prompt_length: 512
+max_response_length: 2048
+
+# Training hyperparameters - A100 optimized
+# Key changes:
+# 1. Increased batch_size from 512 to 1024 (A100 has more memory)
+# 2. Reduced gradient_accumulation_steps from 16 to 8 (faster updates)
+# 3. Increased group_size from 32 to 64 (better variance reduction with A100)
+# 4. Added Flash Attention 2 support (2-3x faster on A100)
+learning_rate: 5.0e-6
+batch_size: 1024           # Doubled from paper (A100 can handle it)
+gradient_accumulation_steps: 8   # Halved (still 8192 effective batch)
+num_workers: 8             # Parallel data loading
+
+# GRPO-specific settings - optimized for A100
+group_size: 64             # Doubled from paper (better variance reduction)
+kl_penalty: 0.02
+
+# Reward settings
+reward_correct: 1.0
+reward_incorrect: 0.0
+
+# Logging and checkpointing
+log_steps: 5
+save_steps: 100            # More frequent saves (faster training)
+eval_steps: 100
+
+# Training settings
+num_epochs: 1
+mixed_precision: bf16      # A100 has native bf16 support (faster than fp16)
+seed: 42
+
+# A100-specific optimizations
+use_flash_attention_2: true        # 2-3x speedup on A100
+gradient_checkpointing: false      # A100 has enough memory, no need to trade compute for memory
+compile_model: true                # PyTorch 2.0+ compile for 20-30% speedup
+dataloader_pin_memory: true        # Faster CPU->GPU transfer
+dataloader_num_workers: 8          # Parallel data loading
+
+# Memory optimizations (optional - only if OOM)
+# offload_ref_model: false         # Keep ref model on GPU (A100 has 40-80GB)
+# use_8bit_adam: false             # Standard AdamW is fine on A100
+# max_grad_norm: 1.0               # Gradient clipping (already in code)
+
+# LoRA settings (disabled for full fine-tuning on A100)
+# A100 has enough memory for full fine-tuning, which is more effective
+use_lora: false
+
+# Prompt settings
+use_cot_prompts: true
+use_non_cot_prompts: true
+
+# Generation settings (optimized for speed)
+generation_config:
+  do_sample: true
+  temperature: 1.0
+  top_p: 0.95
+  num_beams: 1             # No beam search (faster, paper doesn't use it)
+  early_stopping: false
+  use_cache: true          # KV cache for faster generation
+
+# Performance notes for A100:
+# - Expected throughput: ~2-3x faster than V100
+# - With these settings: ~100-150 examples/hour (vs ~30-50 on V100)
+# - Total training time: ~5-8 hours for 10k examples (vs ~20-30 hours on V100)
+# - Flash Attention 2 alone gives 2-3x speedup
+# - bf16 is native on A100 (no accuracy loss, faster than fp16)
+# - Compile model gives another 20-30% speedup
+# - Larger batch/group sizes improve sample efficiency

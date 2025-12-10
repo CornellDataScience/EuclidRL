@@ -96,12 +96,18 @@ class GRPOTrainer:
         )
         self.optimizer = self.accelerator.prepare(self.optimizer)
 
-        # Setup dataloader
+        # Setup dataloader with A100 optimizations
+        num_workers = getattr(config, 'num_workers', 0)
+        pin_memory = getattr(config, 'dataloader_pin_memory', True)
+
         self.dataloader = DataLoader(
             dataset,
             batch_size=config.batch_size,
             shuffle=True,
             collate_fn=lambda x: x,  # Return list of dicts
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=num_workers > 0,
         )
         self.dataloader = self.accelerator.prepare(self.dataloader)
 
@@ -427,14 +433,27 @@ def run_grpo(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    # Check for A100 optimizations
+    use_flash_attn = getattr(cfg, 'use_flash_attention_2', False)
+    compile_model = getattr(cfg, 'compile_model', False)
+
     # Load policy model (initialized from SFT checkpoint)
     print(f"\nLoading policy model from: {cfg.sft_checkpoint or cfg.model_name}")
+    if use_flash_attn:
+        print("  Using Flash Attention 2 (2-3x speedup on A100)")
+
     model = AutoModelForCausalLM.from_pretrained(
         cfg.sft_checkpoint or cfg.model_name,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         device_map="auto",
         trust_remote_code=True,
+        attn_implementation="flash_attention_2" if use_flash_attn else "eager",
     )
+
+    # Compile model for PyTorch 2.0+ (20-30% speedup)
+    if compile_model and hasattr(torch, 'compile'):
+        print("  Compiling model with torch.compile (20-30% speedup)")
+        model = torch.compile(model, mode="reduce-overhead")
 
     # Load reference model (frozen copy of SFT model for KL penalty)
     print(f"Loading reference model from: {cfg.sft_checkpoint or cfg.model_name}")
@@ -443,6 +462,7 @@ def run_grpo(
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         device_map="auto",
         trust_remote_code=True,
+        attn_implementation="flash_attention_2" if use_flash_attn else "eager",
     )
 
     # Load dataset
