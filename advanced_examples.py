@@ -14,16 +14,15 @@ import sys
 import subprocess
 
 EXAMPLES = {
-    "bernoulli_variance": {
-        "name": "Bernoulli Variance Bound",
-        "theorem": "∀ p : ℝ, 0 ≤ p → p ≤ 1 → p * (1 - p) ≤ 1/4",
-        "proof": """intro p hp0 hp1
-have h : 0 ≤ (p - 1/2)^2 := sq_nonneg _
-have : p - p^2 ≤ (1/4 : ℝ) := by
-  nlinarith
-nlinarith""",
-        "difficulty": "★★☆☆☆",
-        "description": "Variance of a Bernoulli(p) is maximized at p = 1/2",
+    "vandermonde": {
+        "name": "Vandermonde's Identity",
+        "theorem": "∀ n m k : ℕ, ∑ i in Finset.range (k + 1), Nat.choose n i * Nat.choose m (k - i) = Nat.choose (n + m) k",
+        "proof": """intro n m k
+classical
+-- mathlib has this as Nat.add_choose
+simpa using Nat.add_choose (n:=n) (m:=m) (k:=k)""",
+        "difficulty": "★★★☆☆",
+        "description": "Binomial coefficients distribute over sums: choose k from n+m",
     },
 
     "am_gm": {
