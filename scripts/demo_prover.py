@@ -46,12 +46,16 @@ def load_model_and_tokenizer(model_path: str, device_map: str = "auto", offload_
     print(f"Loading model from: {model_path}")
 
     is_local = is_local_path(model_path)
+    offload_kwargs = {}
+    if offload_dir:
+        offload_kwargs = {"offload_folder": offload_dir, "offload_dir": offload_dir}
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         device_map=device_map,
-        offload_folder=offload_dir,
+        low_cpu_mem_usage=True,
+        **offload_kwargs,
         trust_remote_code=True,
         local_files_only=is_local,
     )

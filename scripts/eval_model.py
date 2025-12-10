@@ -98,11 +98,16 @@ def evaluate_model(
         if first_part not in ["checkpoints", "models", "output", ".", ".."] and "." not in first_part:
             is_local = False  # Likely HuggingFace ID like "Qwen/Qwen2.5-Math-1.5B"
 
+    offload_kwargs = {}
+    if offload_dir:
+        offload_kwargs = {"offload_folder": offload_dir, "offload_dir": offload_dir}
+
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         device_map=device_map,
-        offload_folder=offload_dir,
+        low_cpu_mem_usage=True,
+        **offload_kwargs,
         trust_remote_code=True,
         local_files_only=is_local,  # Only use local files for local paths
     )
