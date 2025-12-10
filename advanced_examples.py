@@ -177,6 +177,18 @@ constructor
         "difficulty": "★★☆☆☆",
         "description": "Elementary analytic bounds for sin and cos",
     },
+
+    "holder_two_vars": {
+        "name": "Hölder's Inequality (two vars, r=s=2 case)",
+        "theorem": "∀ x y u v : ℝ, |x*u + y*v| ≤ Real.sqrt (x^2 + y^2) * Real.sqrt (u^2 + v^2)",
+        "proof": """intro x y u v
+-- This is Cauchy-Schwarz in ℝ²
+have h := real_inner_mul_real_norm_mul_norm_sub_le (x, y) (u, v)
+-- real_inner (x,y) (u,v) = x*u + y*v, and norms are the L2 norms
+simpa [Real.inner_mul_self, Real.norm_sq_eq_def, Complex.norm_sq] using h""",
+        "difficulty": "★★★★☆",
+        "description": "Special case of Hölder/Cauchy-Schwarz in ℝ²",
+    },
 }
 
 
