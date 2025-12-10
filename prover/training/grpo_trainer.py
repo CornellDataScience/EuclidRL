@@ -145,25 +145,21 @@ class GRPOTrainer:
             ref_log_probs: Tensor of shape (batch_size, group_size)
         """
         batch_size = len(prompts)
+        # Tokenize prompts ONCE (outside the loop)
+        inputs = self.tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=self.config.max_prompt_length,
+        ).to(self.accelerator.device)
+
         all_responses = [[] for _ in range(batch_size)]
         all_response_log_probs = []
         all_ref_log_probs = []
 
-        # Store all generated sequences for later recomputation
-        all_sequences = []
-        all_input_ids = []
-
         # Generate group_size samples for each prompt
         for _ in range(group_size):
-            # Tokenize prompts
-            inputs = self.tokenizer(
-                prompts,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=self.config.max_prompt_length,
-            ).to(self.accelerator.device)
-
             # Generate from current policy (no_grad for generation only)
             with torch.no_grad():
                 outputs = self.model.generate(
@@ -176,38 +172,35 @@ class GRPOTrainer:
                     return_dict_in_generate=True,
                     output_scores=True,
                 )
+                generated_sequences = outputs.sequences
 
             # Decode responses
             responses = self.tokenizer.batch_decode(
-                outputs.sequences[:, inputs.input_ids.shape[1]:],
+                generated_sequences[:, inputs.input_ids.shape[1]:],
                 skip_special_tokens=True
             )
-
-            # Store for later
-            all_sequences.append(outputs.sequences.clone())
-            all_input_ids.append(inputs.input_ids.clone())
 
             # Store responses
             for i, resp in enumerate(responses):
                 all_responses[i].append(resp)
 
-        # Now recompute log probs WITH gradients for the policy model
-        for seq, inp_ids in zip(all_sequences, all_input_ids):
-            # Current policy (WITH gradients)
+            # Compute log probs WITH gradients for the policy model
+            # NOTE: We must NOT use no_grad here, even though the sequences were generated with no_grad
             response_log_probs = self._compute_log_probs(
-                inp_ids,
-                seq,
+                inputs.input_ids,
+                generated_sequences,
                 self.model,
                 requires_grad=True,  # Need gradients for policy optimization
             )
 
             # Reference model (no gradients)
-            ref_log_probs = self._compute_log_probs(
-                inp_ids,
-                seq,
-                self.ref_model,
-                requires_grad=False,  # Reference model is frozen
-            )
+            with torch.no_grad():
+                ref_log_probs = self._compute_log_probs(
+                    inputs.input_ids,
+                    generated_sequences,
+                    self.ref_model,
+                    requires_grad=False,  # Reference model is frozen
+                )
 
             all_response_log_probs.append(response_log_probs)
             all_ref_log_probs.append(ref_log_probs)
@@ -233,15 +226,16 @@ class GRPOTrainer:
             model: Model to use for computing log probs
             requires_grad: Whether to compute gradients (True for policy, False for reference)
         """
-        if requires_grad:
-            # For current policy: need gradients
-            outputs = model(full_sequences, return_dict=True)
-            logits = outputs.logits
-        else:
+        # Compute forward pass
+        if not requires_grad:
             # For reference model: no gradients needed
             with torch.no_grad():
                 outputs = model(full_sequences, return_dict=True)
                 logits = outputs.logits
+        else:
+            # For current policy: need gradients - no context manager!
+            outputs = model(full_sequences, return_dict=True)
+            logits = outputs.logits
 
         # Get log probs for the generated tokens only
         prompt_length = input_ids.shape[1]
@@ -258,7 +252,12 @@ class GRPOTrainer:
 
         # Sum log probs over sequence length
         # Mask padding tokens
-        mask = (gen_tokens != self.tokenizer.pad_token_id).float()
+        if not requires_grad:
+            mask = (gen_tokens != self.tokenizer.pad_token_id).float()
+        else:
+            # When computing gradients, don't detach anything
+            mask = (gen_tokens != self.tokenizer.pad_token_id).float()
+
         sequence_log_prob = (token_log_probs * mask).sum(dim=1)
 
         return sequence_log_prob
