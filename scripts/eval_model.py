@@ -85,24 +85,16 @@ def evaluate_model(
     print(f"Loading model from: {model_path}")
 
     # Check if this is a local path or HuggingFace model ID
-    # Local paths start with /, ./, ~/, or don't contain a slash (relative paths)
-    # HuggingFace IDs are in format "namespace/model-name"
-    is_local = (
-        model_path.startswith("/") or
-        model_path.startswith("./") or
-        model_path.startswith("~/") or
-        model_path.startswith("checkpoints/") or
-        ("/" not in model_path)  # No slash means relative path like "model_dir"
-    ) and "/" in model_path or model_path.startswith(".")
+    # Strategy: Default to local UNLESS it clearly looks like a HF model ID
+    # HuggingFace IDs: "org/model" where org doesn't contain dots/special chars
+    is_local = True  # Default to local
 
-    # Better heuristic: if it contains "/" but doesn't look like "org/repo", it's local
-    if "/" in model_path and not model_path.count("/") == 1:
-        is_local = True
-    elif "/" in model_path:
-        # Could be "org/repo" (HF) or "path/to/checkpoint" (local)
-        # If first part has dots or starts with checkpoint/models, it's local
+    if "/" in model_path and model_path.count("/") == 1:
+        # Exactly one slash - could be "org/model" (HF) or "checkpoints/final" (local)
         first_part = model_path.split("/")[0]
-        is_local = "." in first_part or first_part in ["checkpoints", "models", "output"]
+        # If first part looks like a HF org (no dots, not common dir names), treat as HF
+        if first_part not in ["checkpoints", "models", "output", ".", ".."] and "." not in first_part:
+            is_local = False  # Likely HuggingFace ID like "Qwen/Qwen2.5-Math-1.5B"
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,

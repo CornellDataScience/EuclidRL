@@ -48,19 +48,15 @@ def load_model_and_tokenizer(model_path: str):
     print(f"  Loading from: {model_path}")
 
     # Check if this is a local path or HuggingFace model ID
-    # HuggingFace IDs are in format "namespace/model-name" (exactly one slash)
-    # Local paths: "checkpoints/...", "/abs/path", "./rel/path", etc.
-    is_local = False
-    if "/" in model_path:
-        if model_path.count("/") > 1:
-            # More than one slash = definitely a path
-            is_local = True
-        else:
-            # Exactly one slash - could be "org/repo" or "checkpoints/model"
-            first_part = model_path.split("/")[0]
-            is_local = first_part in ["checkpoints", "models", "output", ".", ".."] or "." in first_part
-    elif model_path.startswith("~") or model_path.startswith("/"):
-        is_local = True
+    # Strategy: Default to local UNLESS it clearly looks like a HF model ID
+    is_local = True  # Default to local
+
+    if "/" in model_path and model_path.count("/") == 1:
+        # Exactly one slash - could be "org/model" (HF) or "checkpoints/final" (local)
+        first_part = model_path.split("/")[0]
+        # If first part looks like a HF org (no dots, not common dir names), treat as HF
+        if first_part not in ["checkpoints", "models", "output", ".", ".."] and "." not in first_part:
+            is_local = False  # Likely HuggingFace ID
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,

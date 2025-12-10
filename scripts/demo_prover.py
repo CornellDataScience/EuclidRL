@@ -28,12 +28,17 @@ if str(ROOT) not in sys.path:
 
 def is_local_path(model_path: str) -> bool:
     """Determine if model_path is a local path or HuggingFace model ID."""
-    if "/" in model_path:
-        if model_path.count("/") > 1:
-            return True
+    # Default to local unless it clearly looks like a HF model ID
+    is_local = True
+
+    if "/" in model_path and model_path.count("/") == 1:
+        # Exactly one slash - could be "org/model" (HF) or "checkpoints/final" (local)
         first_part = model_path.split("/")[0]
-        return first_part in ["checkpoints", "models", "output", ".", ".."] or "." in first_part
-    return model_path.startswith("~") or model_path.startswith("/")
+        # If first part looks like a HF org, treat as HF
+        if first_part not in ["checkpoints", "models", "output", ".", ".."] and "." not in first_part:
+            is_local = False
+
+    return is_local
 
 
 def load_model_and_tokenizer(model_path: str):
