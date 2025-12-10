@@ -95,17 +95,27 @@ class GRPOTrainer:
             gradient_accumulation_steps=config.gradient_accumulation_steps,
         )
 
+        # IMPORTANT: Set model to training mode BEFORE accelerator.prepare()
+        # and ensure parameters require gradients
+        self.model.train()
+        for param in self.model.parameters():
+            param.requires_grad = True
+
+        # Freeze reference model BEFORE accelerator.prepare()
+        self.ref_model.eval()
+        for param in self.ref_model.parameters():
+            param.requires_grad = False
+
         # Prepare model and dataloader
         self.model = self.accelerator.prepare(self.model)
         self.ref_model = self.accelerator.prepare(self.ref_model)
 
-        # Set model to training mode (needed for gradients)
-        self.model.train()
-
-        # Freeze reference model
-        self.ref_model.eval()
-        for param in self.ref_model.parameters():
-            param.requires_grad = False
+        # Verify model parameters require gradients after prepare()
+        num_trainable = sum(p.requires_grad for p in self.model.parameters())
+        num_total = sum(1 for _ in self.model.parameters())
+        print(f"Model parameters: {num_trainable}/{num_total} require gradients")
+        if num_trainable == 0:
+            raise RuntimeError("No model parameters require gradients! Training cannot proceed.")
 
         # Setup optimizer
         self.optimizer = torch.optim.AdamW(
