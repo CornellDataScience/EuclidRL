@@ -3,7 +3,7 @@
 Evaluate a trained model on the validation set.
 
 Usage:
-    python scripts/eval_model.py --model checkpoints/grpo/final --max-samples 100
+    python scripts/eval_model.py --model checkpoints/grpo_quick/final --max-samples 100
     python scripts/eval_model.py --model checkpoints/sft/final --val-file data/sft/val.jsonl
 """
 
@@ -194,7 +194,7 @@ def main() -> None:
         "--model",
         type=str,
         required=True,
-        help="Path to model checkpoint (e.g., checkpoints/grpo/final)",
+        help="Path to model checkpoint (e.g., checkpoints/grpo_quick/final or your configured output_dir)",
     )
     parser.add_argument(
         "--val-file",

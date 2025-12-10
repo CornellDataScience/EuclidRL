@@ -6,11 +6,11 @@ Run a trained model interactively to generate proofs for custom theorems.
 
 Usage:
     # Interactive mode
-    python scripts/demo_prover.py --model checkpoints/grpo/final
+    python scripts/demo_prover.py --model checkpoints/grpo_quick/final
 
     # Single proof
     python scripts/demo_prover.py \
-        --model checkpoints/grpo/final \
+        --model checkpoints/grpo_quick/final \
         --theorem "Prove that for all natural numbers n, n + 0 = n"
 """
 
@@ -230,16 +230,16 @@ def main():
         epilog="""
 Examples:
     # Interactive mode
-    python scripts/demo_prover.py --model checkpoints/grpo/final
+    python scripts/demo_prover.py --model checkpoints/grpo_quick/final
 
     # Single theorem
     python scripts/demo_prover.py \\
-        --model checkpoints/grpo/final \\
+        --model checkpoints/grpo_quick/final \\
         --theorem "∀ n : ℕ, n + 0 = n"
 
     # Generate multiple proofs
     python scripts/demo_prover.py \\
-        --model checkpoints/grpo/final \\
+        --model checkpoints/grpo_quick/final \\
         --theorem "∀ a b : ℝ, a + b = b + a" \\
         --num-samples 5
         """,

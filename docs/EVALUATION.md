@@ -9,12 +9,12 @@ This guide shows how to evaluate your trained models on the validation set.
 ```bash
 # Quick test on 50 validation examples
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 50
 
 # Full validation set (2,750 examples)
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final
+    --model checkpoints/grpo_quick/final
 ```
 
 ### Evaluate SFT Model
@@ -31,7 +31,7 @@ python scripts/eval_model.py \
 ```bash
 # Generate 4 proof attempts per theorem
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --num-samples 4 \
     --max-samples 50
 ```
@@ -103,7 +103,7 @@ Save all generated proofs to a file for later analysis:
 
 ```bash
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 100 \
     --num-samples 4 \
     --output results/grpo_eval_results.jsonl
@@ -125,7 +125,7 @@ Output format (one JSON object per line):
 ```bash
 # Test on 20 examples with single proof per theorem
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 20 \
     --temperature 0.2
 ```
@@ -140,7 +140,7 @@ Use this to:
 ```bash
 # Generate multiple proofs per theorem
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 100 \
     --num-samples 8 \
     --output results/pass_at_k.jsonl
@@ -156,7 +156,7 @@ Use this to:
 ```bash
 # Evaluate on entire validation set
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --num-samples 4 \
     --output results/full_validation.jsonl
 ```
@@ -175,13 +175,13 @@ Use the dedicated comparison script to see outputs from multiple models simultan
 ```bash
 # Compare Base Qwen vs SFT vs GRPO (Quick test - 20 examples)
 python scripts/compare_models.py \
-    --models Qwen/Qwen2.5-Math-1.5B checkpoints/sft/final checkpoints/grpo/final \
+    --models Qwen/Qwen2.5-Math-1.5B checkpoints/sft/final checkpoints/grpo_quick/final \
     --labels "Base Qwen" "SFT" "GRPO" \
     --max-samples 20
 
 # Compare SFT vs GRPO (Full comparison - 100 examples)
 python scripts/compare_models.py \
-    --models checkpoints/sft/final checkpoints/grpo/final \
+    --models checkpoints/sft/final checkpoints/grpo_quick/final \
     --labels "SFT" "GRPO" \
     --max-samples 100 \
     --output results/sft_vs_grpo_comparison.json
@@ -212,7 +212,7 @@ python scripts/eval_model.py \
 
 # Evaluate GRPO model
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 100 \
     --output results/grpo_eval.jsonl
 ```
@@ -224,21 +224,21 @@ Test different sampling temperatures:
 ```bash
 # Greedy (deterministic)
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 50 \
     --temperature 0.1 \
     --output results/temp_0.1.jsonl
 
 # Balanced
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 50 \
     --temperature 0.7 \
     --output results/temp_0.7.jsonl
 
 # Creative
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-samples 50 \
     --temperature 1.0 \
     --output results/temp_1.0.jsonl
@@ -253,7 +253,7 @@ If you run out of GPU memory:
 ```bash
 # Reduce max_new_tokens
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-new-tokens 256 \
     --max-samples 50
 ```
@@ -265,7 +265,7 @@ For faster evaluation:
 ```bash
 # Use lower temperature (faster sampling)
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --temperature 0.1 \
     --max-samples 100
 ```
@@ -292,12 +292,12 @@ After evaluation:
 ### Model Not Found
 
 ```
-Error: Can't load model from checkpoints/grpo/final
+Error: Can't load model from checkpoints/grpo_quick/final
 ```
 
 **Solution**: Check that training completed and checkpoint exists:
 ```bash
-ls -lh checkpoints/grpo/final/
+ls -lh checkpoints/grpo_quick/final/
 ```
 
 ### Out of Memory
@@ -309,7 +309,7 @@ RuntimeError: CUDA out of memory
 **Solution**: Reduce batch size or max tokens:
 ```bash
 python scripts/eval_model.py \
-    --model checkpoints/grpo/final \
+    --model checkpoints/grpo_quick/final \
     --max-new-tokens 256 \
     --max-samples 20
 ```

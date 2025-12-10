@@ -5,13 +5,13 @@ Compare multiple models on the validation set.
 Usage:
     # Compare SFT vs GRPO vs Base Qwen model
     python scripts/compare_models.py \
-        --models Qwen/Qwen2.5-Math-1.5B checkpoints/sft/final checkpoints/grpo/final \
+        --models Qwen/Qwen2.5-Math-1.5B checkpoints/sft/final checkpoints/grpo_quick/final \
         --labels "Base Qwen" "SFT" "GRPO" \
         --max-samples 50
 
     # Quick comparison
     python scripts/compare_models.py \
-        --models checkpoints/sft/final checkpoints/grpo/final \
+        --models checkpoints/sft/final checkpoints/grpo_quick/final \
         --labels "SFT" "GRPO" \
         --max-samples 20
 """
