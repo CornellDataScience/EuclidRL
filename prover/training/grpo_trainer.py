@@ -99,6 +99,9 @@ class GRPOTrainer:
         self.model = self.accelerator.prepare(self.model)
         self.ref_model = self.accelerator.prepare(self.ref_model)
 
+        # Set model to training mode (needed for gradients)
+        self.model.train()
+
         # Freeze reference model
         self.ref_model.eval()
         for param in self.ref_model.parameters():
