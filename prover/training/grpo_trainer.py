@@ -33,14 +33,29 @@ from prover.env import LeanProofEnv
 class TheoremDataset(Dataset):
     """Dataset of theorem statements for GRPO training."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(
+        self,
+        path: str,
+        max_samples: Optional[int] = None,
+        shuffle: bool = True,
+    ) -> None:
         self.items: List[dict] = []
         for line in Path(path).read_text().splitlines():
-            data = json.loads(line)
-            self.items.append({
-                "prompt": data["prompt"],
-                "theorem": data.get("theorem"),
-            })
+            if line.strip():
+                data = json.loads(line)
+                self.items.append({
+                    "prompt": data["prompt"],
+                    "theorem": data.get("theorem"),
+                })
+
+        # Shuffle and limit dataset size
+        if shuffle:
+            import random
+            random.shuffle(self.items)
+
+        if max_samples is not None and max_samples < len(self.items):
+            self.items = self.items[:max_samples]
+            print(f"Limited dataset to {max_samples} samples (from {len(self.items)} total)")
 
     def __len__(self) -> int:
         return len(self.items)
@@ -467,8 +482,17 @@ def run_grpo(
 
     # Load dataset
     print(f"Loading dataset from: {cfg.rollout_file}")
-    dataset = TheoremDataset(cfg.rollout_file)
-    print(f"Dataset size: {len(dataset)}")
+    max_samples = getattr(cfg, 'max_samples', None)
+    shuffle_data = getattr(cfg, 'shuffle_data', True)
+
+    dataset = TheoremDataset(
+        cfg.rollout_file,
+        max_samples=max_samples,
+        shuffle=shuffle_data,
+    )
+    print(f"Dataset size: {len(dataset)} examples")
+    if max_samples is not None:
+        print(f"  (Limited to {max_samples} samples for faster training)")
 
     # Create trainer
     trainer = GRPOTrainer(

@@ -31,6 +31,17 @@ def main() -> None:
         help="Path to YAML config file."
     )
     parser.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="Limit dataset to N samples (overrides config)."
+    )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Quick mode: use grpo_quick.yaml config (50 samples, small batch/group)."
+    )
+    parser.add_argument(
         "--lean-repo",
         type=str,
         default=None,
@@ -51,8 +62,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # Use quick config if --quick flag is set
+    config_path = args.config
+    if args.quick and config_path is None:
+        config_path = "prover/configs/grpo_quick.yaml"
+        print("Quick mode enabled: using grpo_quick.yaml config")
+
     # Load configuration
-    cfg = load_grpo_config(args.config)
+    cfg = load_grpo_config(config_path)
+
+    # Override with command-line arguments
+    if args.max_samples is not None:
+        cfg.max_samples = args.max_samples
+        print(f"Overriding max_samples: {args.max_samples}")
 
     # Setup Lean environment if specified
     env = None
@@ -64,7 +86,7 @@ def main() -> None:
         env = LeanProofEnv(args.lean_repo, args.lean_commit, args.theorems)
 
     # Run GRPO training
-    run_grpo(cfg, args.config, env)
+    run_grpo(cfg, config_path, env)
 
 
 if __name__ == "__main__":

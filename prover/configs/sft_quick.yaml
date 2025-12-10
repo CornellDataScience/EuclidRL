@@ -1,0 +1,50 @@
+# Quick SFT Config - Fast iteration and debugging
+# Uses only 100 samples for rapid testing (~5-10 minutes)
+
+model_name: Qwen/Qwen2.5-Math-1.5B
+output_dir: checkpoints/sft_quick
+train_file: data/sft/train.jsonl
+val_file: data/sft/val.jsonl
+
+# Limit data for quick testing
+max_train_samples: 100    # Only use 100 training examples
+max_val_samples: 20       # Only use 20 validation examples
+
+# Training settings
+max_seq_length: 2048
+learning_rate: 2.0e-5
+batch_size: 2
+gradient_accumulation_steps: 8
+num_train_epochs: 1       # Just 1 epoch for quick test
+warmup_steps: 10
+weight_decay: 0.0
+
+# Logging and checkpointing
+log_steps: 5
+save_steps: 50
+eval_steps: 50
+
+# Optimization
+gradient_checkpointing: true
+mixed_precision: bf16
+seed: 42
+
+# LoRA settings
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# Expected runtime: ~5-10 minutes on A100, ~15-20 minutes on V100
+# Use this for:
+# - Testing your setup
+# - Debugging training pipeline
+# - Quick iterations on prompts/data format
+# - Verifying configs work before full training

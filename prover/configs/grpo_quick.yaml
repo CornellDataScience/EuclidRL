@@ -1,0 +1,62 @@
+# Quick GRPO Config - Fast iteration and debugging
+# Uses only 50 samples for rapid testing (~10-20 minutes)
+
+model_name: Qwen/Qwen2.5-Math-1.5B
+sft_checkpoint: checkpoints/sft/final
+output_dir: checkpoints/grpo_quick
+
+# Data configuration
+rollout_file: data/rollouts/train.jsonl
+max_samples: 50           # Only use 50 examples for quick test
+shuffle_data: true
+
+max_prompt_length: 512
+max_response_length: 2048
+
+# Training hyperparameters - reduced for speed
+learning_rate: 5.0e-6
+batch_size: 4             # Small batch for quick iteration
+gradient_accumulation_steps: 2
+num_workers: 4
+
+# GRPO-specific settings - reduced for speed
+group_size: 8             # Smaller group for faster generation
+kl_penalty: 0.02
+
+# Reward settings
+reward_correct: 1.0
+reward_incorrect: 0.0
+
+# Logging and checkpointing
+log_steps: 1              # Log every step
+save_steps: 25
+eval_steps: 25
+
+# Training settings
+num_epochs: 1
+mixed_precision: bf16
+seed: 42
+
+# A100 optimizations (can enable if on A100)
+use_flash_attention_2: false  # Set to true on A100
+compile_model: false          # Set to true with PyTorch 2.0+
+dataloader_pin_memory: true
+
+# LoRA (disabled for quick testing)
+use_lora: false
+
+# Prompt settings
+use_cot_prompts: true
+use_non_cot_prompts: true
+
+# Expected runtime:
+# - A100: ~10-15 minutes
+# - V100: ~30-40 minutes
+# - T4: ~60-90 minutes
+#
+# Use this for:
+# - Testing GRPO setup
+# - Debugging RL pipeline
+# - Verifying Lean 4 integration works
+# - Quick experiments with hyperparameters
+# - Checking reward signals are working

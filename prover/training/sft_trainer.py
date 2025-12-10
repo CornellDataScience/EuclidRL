@@ -35,7 +35,15 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
     )
     model, tokenizer = load_qwen_policy(policy_cfg)
 
-    train_ds, val_ds = load_jsonl_dataset(cfg.train_file, cfg.val_file)
+    max_train = getattr(cfg, 'max_train_samples', None)
+    max_val = getattr(cfg, 'max_val_samples', None)
+
+    train_ds, val_ds = load_jsonl_dataset(
+        cfg.train_file,
+        cfg.val_file,
+        max_train_samples=max_train,
+        max_val_samples=max_val,
+    )
     print(f"Loaded datasets - Train: {len(train_ds)} examples, Val: {len(val_ds) if val_ds else 0} examples")
 
     # Disable validation entirely due to filtering issues with completion_only_loss

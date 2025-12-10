@@ -20,6 +20,8 @@ class GRPOConfig:
     rollout_file: str = "data/rollouts/train.jsonl"
     max_prompt_length: int = 512
     max_response_length: int = 2048  # Paper uses 2048 for max length
+    max_samples: Optional[int] = None  # Limit dataset size (None = use all data)
+    shuffle_data: bool = True  # Shuffle before sampling
 
     # Training hyperparameters (from paper Section 2.3)
     learning_rate: float = 5e-6  # Paper: constant learning rate of 5e-6

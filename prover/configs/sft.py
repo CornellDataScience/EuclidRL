@@ -12,6 +12,8 @@ class SFTConfig:
     train_file: str = "data/sft/train.jsonl"
     val_file: Optional[str] = "data/sft/val.jsonl"
     max_seq_length: int = 2048
+    max_train_samples: Optional[int] = None  # Limit training data (None = use all)
+    max_val_samples: Optional[int] = None  # Limit validation data (None = use all)
     learning_rate: float = 2e-5
     batch_size: int = 2
     gradient_accumulation_steps: int = 8
