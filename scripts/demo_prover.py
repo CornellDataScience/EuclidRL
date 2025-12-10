@@ -41,7 +41,7 @@ def is_local_path(model_path: str) -> bool:
     return is_local
 
 
-def load_model_and_tokenizer(model_path: str):
+def load_model_and_tokenizer(model_path: str, device_map: str = "auto", offload_dir: str | None = None):
     """Load model and tokenizer."""
     print(f"Loading model from: {model_path}")
 
@@ -50,7 +50,8 @@ def load_model_and_tokenizer(model_path: str):
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        device_map="auto",
+        device_map=device_map,
+        offload_folder=offload_dir,
         trust_remote_code=True,
         local_files_only=is_local,
     )
@@ -263,6 +264,18 @@ Examples:
         help="Number of proof attempts to generate (default: 3)",
     )
     parser.add_argument(
+        "--device-map",
+        type=str,
+        default="auto",
+        help='Device map to use for loading (e.g., "auto", "cpu")',
+    )
+    parser.add_argument(
+        "--offload-dir",
+        type=str,
+        default=None,
+        help="Directory to offload weights when using device_map=auto (required if layers are offloaded)",
+    )
+    parser.add_argument(
         "--temperature",
         type=float,
         default=0.7,
@@ -278,7 +291,11 @@ Examples:
     args = parser.parse_args()
 
     # Load model
-    model, tokenizer = load_model_and_tokenizer(args.model)
+    model, tokenizer = load_model_and_tokenizer(
+        args.model,
+        device_map=args.device_map,
+        offload_dir=args.offload_dir,
+    )
 
     print(f"\nModel loaded successfully!")
     print(f"  Temperature: {args.temperature}")

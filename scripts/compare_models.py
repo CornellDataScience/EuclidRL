@@ -43,7 +43,7 @@ def load_validation_data(val_file: str, max_samples: int | None = None) -> List[
     return data
 
 
-def load_model_and_tokenizer(model_path: str):
+def load_model_and_tokenizer(model_path: str, device_map: str = "auto", offload_dir: str | None = None):
     """Load model and tokenizer."""
     print(f"  Loading from: {model_path}")
 
@@ -61,7 +61,8 @@ def load_model_and_tokenizer(model_path: str):
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        device_map="auto",
+        device_map=device_map,
+        offload_folder=offload_dir,
         trust_remote_code=True,
         local_files_only=is_local,  # Only use local files for local paths
     )
@@ -119,6 +120,8 @@ def compare_models(
     max_samples: int | None = None,
     max_new_tokens: int = 512,
     temperature: float = 0.7,
+    device_map: str = "auto",
+    offload_dir: str | None = None,
     output_file: str | None = None,
 ) -> None:
     """Compare multiple models on validation set."""
@@ -133,7 +136,11 @@ def compare_models(
     models_and_tokenizers = []
     for model_path, label in zip(model_paths, labels):
         print(f"\n[{label}]")
-        model, tokenizer = load_model_and_tokenizer(model_path)
+        model, tokenizer = load_model_and_tokenizer(
+            model_path,
+            device_map=device_map,
+            offload_dir=offload_dir,
+        )
         models_and_tokenizers.append((model, tokenizer, label))
 
     # Evaluate all models
@@ -264,6 +271,18 @@ def main() -> None:
         help="Sampling temperature (default: 0.7)",
     )
     parser.add_argument(
+        "--device-map",
+        type=str,
+        default="auto",
+        help='Device map to use for loading (e.g., "auto", "cpu")',
+    )
+    parser.add_argument(
+        "--offload-dir",
+        type=str,
+        default=None,
+        help="Directory to offload weights when using device_map=auto (required if layers are offloaded)",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default=None,
@@ -286,6 +305,8 @@ def main() -> None:
         max_samples=args.max_samples,
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
+        device_map=args.device_map,
+        offload_dir=args.offload_dir,
         output_file=args.output,
     )
 

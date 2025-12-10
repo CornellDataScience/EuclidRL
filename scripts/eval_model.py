@@ -79,6 +79,8 @@ def evaluate_model(
     num_samples_per_theorem: int = 1,
     max_new_tokens: int = 512,
     temperature: float = 0.7,
+    device_map: str = "auto",
+    offload_dir: str | None = None,
     output_file: str | None = None,
 ) -> Dict:
     """Evaluate model on validation set."""
@@ -99,7 +101,8 @@ def evaluate_model(
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        device_map="auto",
+        device_map=device_map,
+        offload_folder=offload_dir,
         trust_remote_code=True,
         local_files_only=is_local,  # Only use local files for local paths
     )
@@ -221,6 +224,18 @@ def main() -> None:
         help="Max tokens to generate per proof (default: 512)",
     )
     parser.add_argument(
+        "--device-map",
+        type=str,
+        default="auto",
+        help='Device map to use for loading (e.g., "auto", "cpu")',
+    )
+    parser.add_argument(
+        "--offload-dir",
+        type=str,
+        default=None,
+        help="Directory to offload weights when using device_map=auto (required if layers are offloaded)",
+    )
+    parser.add_argument(
         "--temperature",
         type=float,
         default=0.7,
@@ -241,6 +256,8 @@ def main() -> None:
         num_samples_per_theorem=args.num_samples,
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
+        device_map=args.device_map,
+        offload_dir=args.offload_dir,
         output_file=args.output,
     )
 
