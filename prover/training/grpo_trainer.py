@@ -172,7 +172,8 @@ class GRPOTrainer:
                     return_dict_in_generate=True,
                     output_scores=True,
                 )
-                generated_sequences = outputs.sequences
+                # Detach and clone to ensure it's a standalone tensor
+                generated_sequences = outputs.sequences.detach()
 
             # Decode responses
             responses = self.tokenizer.batch_decode(
@@ -185,7 +186,8 @@ class GRPOTrainer:
                 all_responses[i].append(resp)
 
             # Compute log probs WITH gradients for the policy model
-            # NOTE: We must NOT use no_grad here, even though the sequences were generated with no_grad
+            # The key insight: we pass generated_sequences as DATA (indices),
+            # and compute a fresh forward pass through the model WITH gradients
             response_log_probs = self._compute_log_probs(
                 inputs.input_ids,
                 generated_sequences,
@@ -208,6 +210,13 @@ class GRPOTrainer:
         # Stack log probs: (batch_size, group_size)
         response_log_probs_tensor = torch.stack(all_response_log_probs, dim=1)
         ref_log_probs_tensor = torch.stack(all_ref_log_probs, dim=1)
+
+        # Debug: Check if gradients are attached
+        if response_log_probs_tensor.requires_grad:
+            print(f"  [DEBUG] response_log_probs has gradients: requires_grad={response_log_probs_tensor.requires_grad}")
+        else:
+            print(f"  [WARNING] response_log_probs MISSING gradients! requires_grad={response_log_probs_tensor.requires_grad}")
+            print(f"  [DEBUG] Individual log_probs requires_grad: {[lp.requires_grad for lp in all_response_log_probs]}")
 
         return all_responses, response_log_probs_tensor, ref_log_probs_tensor
 
@@ -259,6 +268,13 @@ class GRPOTrainer:
             mask = (gen_tokens != self.tokenizer.pad_token_id).float()
 
         sequence_log_prob = (token_log_probs * mask).sum(dim=1)
+
+        # Debug gradient flow
+        if requires_grad and not sequence_log_prob.requires_grad:
+            print(f"  [ERROR] _compute_log_probs: sequence_log_prob missing gradients!")
+            print(f"    logits.requires_grad: {logits.requires_grad}")
+            print(f"    log_probs.requires_grad: {log_probs.requires_grad}")
+            print(f"    token_log_probs.requires_grad: {token_log_probs.requires_grad}")
 
         return sequence_log_prob
 
