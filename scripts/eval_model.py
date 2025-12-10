@@ -83,11 +83,16 @@ def evaluate_model(
 ) -> Dict:
     """Evaluate model on validation set."""
     print(f"Loading model from: {model_path}")
+
+    # Check if this is a local path or HuggingFace model ID
+    is_local = Path(model_path).exists()
+
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         device_map="auto",
         trust_remote_code=True,
+        local_files_only=is_local,  # Only use local files for local paths
     )
     model.eval()
 
@@ -96,6 +101,7 @@ def evaluate_model(
         model_path,
         use_fast=True,
         trust_remote_code=True,
+        local_files_only=is_local,
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
