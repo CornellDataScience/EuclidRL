@@ -176,18 +176,20 @@ class GRPOTrainer:
                 skip_special_tokens=True
             )
 
-            # Compute log probabilities from current policy
+            # Compute log probabilities from current policy (WITH gradients)
             response_log_probs = self._compute_log_probs(
                 inputs.input_ids,
                 outputs.sequences,
                 self.model,
+                requires_grad=True,  # Need gradients for policy optimization
             )
 
-            # Compute log probabilities from reference model
+            # Compute log probabilities from reference model (no gradients)
             ref_log_probs = self._compute_log_probs(
                 inputs.input_ids,
                 outputs.sequences,
                 self.ref_model,
+                requires_grad=False,  # Reference model is frozen
             )
 
             # Store responses and log probs
@@ -208,31 +210,45 @@ class GRPOTrainer:
         input_ids: torch.Tensor,
         full_sequences: torch.Tensor,
         model: AutoModelForCausalLM,
+        requires_grad: bool = False,
     ) -> torch.Tensor:
-        """Compute log probabilities of generated tokens."""
-        with torch.no_grad():
+        """Compute log probabilities of generated tokens.
+
+        Args:
+            input_ids: Input prompt tokens
+            full_sequences: Full sequences (prompt + generated)
+            model: Model to use for computing log probs
+            requires_grad: Whether to compute gradients (True for policy, False for reference)
+        """
+        if requires_grad:
+            # For current policy: need gradients
             outputs = model(full_sequences, return_dict=True)
             logits = outputs.logits
+        else:
+            # For reference model: no gradients needed
+            with torch.no_grad():
+                outputs = model(full_sequences, return_dict=True)
+                logits = outputs.logits
 
-            # Get log probs for the generated tokens only
-            prompt_length = input_ids.shape[1]
-            gen_logits = logits[:, prompt_length-1:-1, :]  # Shift by 1
-            gen_tokens = full_sequences[:, prompt_length:]
+        # Get log probs for the generated tokens only
+        prompt_length = input_ids.shape[1]
+        gen_logits = logits[:, prompt_length-1:-1, :]  # Shift by 1
+        gen_tokens = full_sequences[:, prompt_length:]
 
-            # Compute log probabilities
-            log_probs = F.log_softmax(gen_logits, dim=-1)
-            token_log_probs = torch.gather(
-                log_probs,
-                dim=2,
-                index=gen_tokens.unsqueeze(-1)
-            ).squeeze(-1)
+        # Compute log probabilities
+        log_probs = F.log_softmax(gen_logits, dim=-1)
+        token_log_probs = torch.gather(
+            log_probs,
+            dim=2,
+            index=gen_tokens.unsqueeze(-1)
+        ).squeeze(-1)
 
-            # Sum log probs over sequence length
-            # Mask padding tokens
-            mask = (gen_tokens != self.tokenizer.pad_token_id).float()
-            sequence_log_prob = (token_log_probs * mask).sum(dim=1)
+        # Sum log probs over sequence length
+        # Mask padding tokens
+        mask = (gen_tokens != self.tokenizer.pad_token_id).float()
+        sequence_log_prob = (token_log_probs * mask).sum(dim=1)
 
-            return sequence_log_prob
+        return sequence_log_prob
 
     def compute_rewards(
         self,
@@ -447,6 +463,8 @@ def run_grpo(
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    # Use left padding for decoder-only models during generation
+    tokenizer.padding_side = "left"
 
     # Check for A100 optimizations
     use_flash_attn = getattr(cfg, 'use_flash_attention_2', False)

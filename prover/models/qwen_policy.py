@@ -17,6 +17,8 @@ def get_tokenizer(model_name: str) -> PreTrainedTokenizer:
     tok = AutoTokenizer.from_pretrained(model_name, use_fast=True, trust_remote_code=True)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
+    # For decoder-only models, use left padding during generation
+    tok.padding_side = "left"
     return tok
 
 
