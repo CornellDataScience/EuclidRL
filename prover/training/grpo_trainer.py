@@ -146,6 +146,10 @@ class GRPOTrainer:
         all_response_log_probs = []
         all_ref_log_probs = []
 
+        # Store all generated sequences for later recomputation
+        all_sequences = []
+        all_input_ids = []
+
         # Generate group_size samples for each prompt
         for _ in range(group_size):
             # Tokenize prompts
@@ -157,7 +161,7 @@ class GRPOTrainer:
                 max_length=self.config.max_prompt_length,
             ).to(self.accelerator.device)
 
-            # Generate from current policy
+            # Generate from current policy (no_grad for generation only)
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
@@ -176,25 +180,31 @@ class GRPOTrainer:
                 skip_special_tokens=True
             )
 
-            # Compute log probabilities from current policy (WITH gradients)
+            # Store for later
+            all_sequences.append(outputs.sequences.clone())
+            all_input_ids.append(inputs.input_ids.clone())
+
+            # Store responses
+            for i, resp in enumerate(responses):
+                all_responses[i].append(resp)
+
+        # Now recompute log probs WITH gradients for the policy model
+        for seq, inp_ids in zip(all_sequences, all_input_ids):
+            # Current policy (WITH gradients)
             response_log_probs = self._compute_log_probs(
-                inputs.input_ids,
-                outputs.sequences,
+                inp_ids,
+                seq,
                 self.model,
                 requires_grad=True,  # Need gradients for policy optimization
             )
 
-            # Compute log probabilities from reference model (no gradients)
+            # Reference model (no gradients)
             ref_log_probs = self._compute_log_probs(
-                inputs.input_ids,
-                outputs.sequences,
+                inp_ids,
+                seq,
                 self.ref_model,
                 requires_grad=False,  # Reference model is frozen
             )
-
-            # Store responses and log probs
-            for i, resp in enumerate(responses):
-                all_responses[i].append(resp)
 
             all_response_log_probs.append(response_log_probs)
             all_ref_log_probs.append(ref_log_probs)
