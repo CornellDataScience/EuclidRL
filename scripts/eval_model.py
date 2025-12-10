@@ -100,7 +100,7 @@ def evaluate_model(
 
     offload_kwargs = {}
     if offload_dir:
-        offload_kwargs = {"offload_folder": offload_dir, "offload_dir": offload_dir}
+        offload_kwargs = {"offload_folder": offload_dir}
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,

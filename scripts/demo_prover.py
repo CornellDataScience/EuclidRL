@@ -48,7 +48,7 @@ def load_model_and_tokenizer(model_path: str, device_map: str = "auto", offload_
     is_local = is_local_path(model_path)
     offload_kwargs = {}
     if offload_dir:
-        offload_kwargs = {"offload_folder": offload_dir, "offload_dir": offload_dir}
+        offload_kwargs = {"offload_folder": offload_dir}
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
